@@ -1,0 +1,6 @@
+.idea/
+README.rst
+build/
+dist/
+pythink.egg-info/
+*.pyc
