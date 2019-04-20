@@ -13,6 +13,13 @@ class StudentThinkModel(ThinkModel):
     table_name = "student"
     database = db
 
+    create_time = True  # 开启自动插入时间
+
+    @classmethod
+    def set_insert_name(cls, data):
+        """把名字转为大写"""
+        return data["name"].upper()
+
 
 # 增加
 data = {
@@ -22,12 +29,16 @@ data = {
 
 result = StudentThinkModel.insert(data)
 print(result)
+# INSERT INTO student(age, create_time, name) VALUES (%s, %s, %s)
+# [23, '2019-04-20 20:18:40', 'TOM']
 # 1
 
 # 删除
 result = StudentThinkModel.delete(13)
 print(result)
+# DELETE FROM student WHERE id=13
 # 1
+
 
 # 修改
 data = {
@@ -36,15 +47,17 @@ data = {
 }
 result = StudentThinkModel.update(1, data)
 print(result)
-# 1
+# UPDATE student SET age=%s, name=%s WHERE id=1
+# [24, 'Tom']
+# 0
 
 # 查询
 result = StudentThinkModel.select(
     fields=["name", "age"],
     where="id=1",
-    limit=1,
-    as_list=True,
-    as_dict=True
+    limit=1
 )
 print(result)
-# [OrderedDict([('name', u'Tom'), ('age', 24L)])]
+# SELECT name, age FROM student WHERE id=1 LIMIT 1
+# <generator object <genexpr> at 0x10f77f140>
+

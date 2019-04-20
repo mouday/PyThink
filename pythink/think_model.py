@@ -7,9 +7,8 @@ from __future__ import unicode_literals, print_function
 
 import hashlib
 from datetime import datetime
-
-from .logger import logger
-from .think_database import ThinkDatabase
+from pythink.logger import logger
+from pythink.think_table import ThinkTable
 
 
 class ThinkModel(object):
@@ -22,37 +21,61 @@ class ThinkModel(object):
 
     # 可选的参数
     datetime_format = "%Y-%m-%d %H:%M:%S"
-    think_database = ThinkDatabase
+
+    # 自动添加创建时间
+    create_time = False
+    create_time_format = datetime_format
+
+    # 自动添加更新时间
+    update_time = False
+    update_time_format = datetime_format
+
+    # list 去重MD5 的联合字段列表
+    md5_list = []
 
     @classmethod
     def get_table(cls):
-        think_db = cls.think_database(cls.database)
-        table = think_db.table(cls.table_name)
-        return table
+        return ThinkTable(cls.database, cls.table_name)
 
     @classmethod
-    def insert(cls, data, create_time_=False, md5_list_=None):
+    def set_insert_create_time(cls, data):
+        if cls.create_time:
+            return cls._date_time(cls.create_time_format)
+        else:
+            return None
+
+    @classmethod
+    def set_insert_md5(cls, data):
+        if cls.md5_list:
+            return cls._md5(data, cls.md5_list)
+        else:
+            return None
+
+    @classmethod
+    def set_update_update_time(cls, data):
+        if cls.update_time:
+            return cls._date_time(cls.update_time_format)
+        else:
+            return None
+
+    @classmethod
+    def insert(cls, data, ignore=False, replace=False):
         """
         :param data:
-        :param create_time_: bool 自动添加创建时间
-        :param md5_list_: list 去重MD5 的联合字段列表
+        :param ignore: bool
+        :param replace: bool
         :return:
         """
         table = cls.get_table()
 
-        if create_time_:
-            data.setdefault("create_time", cls._date_time())
+        data = cls._process_method(data, "set_insert_")
 
-        if md5_list_:
-            data.setdefault("md5", cls._md5(data, md5_list_))
-
-        result = table.insert(
-            **data
-        ).execute()
+        result = table.insert(data, ignore, replace).execute()
 
         logger.debug(" {} insert result: {}".format(
             cls.__name__, result)
         )
+
         return result
 
     @classmethod
@@ -66,25 +89,24 @@ class ThinkModel(object):
         ).limit(
             limit
         ).query(as_list, as_dict)
+
         return rows
 
     @classmethod
-    def update(cls, uid, data, update_time_=False):
+    def update(cls, uid, data):
         """
         :param uid:
         :param data:
-        :param update_time_: bool 自动添加更新时间
         :return:
         """
         table = cls.get_table()
 
-        if update_time_:
-            data.setdefault("update_time", cls._date_time())
+        data = cls._process_method(data, "set_update_")
 
         result = table.update(
-            **data
+            data
         ).where(
-            "id", "=", uid
+            "id={}".format(uid)
         ).execute()
 
         logger.debug(" {} update result: {}".format(
@@ -98,17 +120,18 @@ class ThinkModel(object):
 
         result = table.delete(
         ).where(
-            "id", "=", uid
+            "id={}".format(uid)
         ).execute()
 
         logger.debug(" {} delete result: {}".format(
             cls.__name__, result)
         )
+
         return result
 
     @classmethod
-    def _date_time(cls):
-        return datetime.now().strftime(cls.datetime_format)
+    def _date_time(cls, datetime_format=datetime_format):
+        return datetime.now().strftime(datetime_format)
 
     @classmethod
     def _md5(cls, data, md5_list):
@@ -120,3 +143,38 @@ class ThinkModel(object):
             md5.update("{}".format(value).encode("utf-8"))
 
         return md5.hexdigest()
+
+    @classmethod
+    def _get_methods(cls):
+        return filter(cls._is_public_method, dir(cls))
+
+    @classmethod
+    def _is_public_method(cls, method_name):
+        if all([
+            not method_name.startswith("_"),
+            not method_name.startswith("__"),
+            callable(getattr(cls, method_name))
+        ]):
+            return True
+        else:
+            return False
+
+    @classmethod
+    def _process_method(cls, data, process_method_key):
+        """
+        数据预处理所做的动作
+        :param data: dict
+        :param process_method_key: str
+        :return: dict
+        """
+
+        for method_name in cls._get_methods():
+            if method_name.startswith(process_method_key):
+                method = getattr(cls, method_name)
+                field_name = method_name.split(process_method_key)[-1]
+
+                result = method(data)
+                if result is not None:
+                    data[field_name] = result
+
+        return data

@@ -5,8 +5,7 @@
 
 from __future__ import unicode_literals, print_function
 
-import logging
-
 from .think_database import ThinkDatabase
+from .think_table import ThinkTable
 from .think_model import ThinkModel
 
