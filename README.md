@@ -13,11 +13,31 @@ pip install pythink
 
 # 快速开始
 
+新建表
+```sql
+CREATE TABLE `student` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` int(11) DEFAULT NULL,
+  `name` varchar(20) DEFAULT '',
+  `age` int(11),
+  `create_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8
+```
+
 1、定义ThinkModel模型
 ```python
 
 from pythink import ThinkModel
-from playhouse.db_url import connect
+from pythink import connect
+
+import logging
+
+# 自定义是否显示日志
+logger = logging.getLogger("pythink")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+
 
 db = connect("mysql://root:123456@127.0.01:3306/demo")
 
@@ -26,28 +46,52 @@ class StudentThinkModel(ThinkModel):
     table_name = "student"
     database = db
 
-    create_time = True  # 开启自动插入时间
+    create_time = "%Y-%m-%d %H:%M:%S"  # 开启自动插入时间
 
     @classmethod
     def set_insert_name(cls, data):
         """把名字转为大写"""
         return data["name"].upper()
+
 ```
 
 2、增加
 ```python
 
-# 增加
+# 增加单条记录
 data = {
     "name": "Tom",
-    "age": 23
 }
 
 result = StudentThinkModel.insert(data)
 print(result)
-# INSERT INTO student(age, create_time, name) VALUES (%s, %s, %s)
-# [23, '2019-04-20 20:18:40', 'TOM']
-# 1
+"""
+SQL: INSERT INTO student(create_time, name) VALUES (%s, %s)
+SQL Params: ["2019-04-26 15:37:08", "TOM"]
+StudentThinkModel insert result: 1
+1
+"""
+
+
+# 增加多条记录
+data = [
+    {
+        "name": "Tom",
+    },
+    {
+        "name": "Jack"
+    }
+]
+
+result = StudentThinkModel.insert(data)
+print(result)
+"""
+SQL: INSERT INTO student(create_time, name) VALUES (%s, %s), (%s, %s)
+SQL Params: ["2019-04-26 15:37:08", "TOM", "2019-04-26 15:37:08", "JACK"]
+StudentThinkModel insert result: 2
+2
+"""
+
 ```
 
 3、删除

@@ -4,12 +4,15 @@
 # @Author  : Peng Shiyu
 
 from pythink import ThinkModel
-from playhouse.db_url import connect
+from pythink import connect
+
 import logging
 
-logger = logging.getLogger('pythink')
+# 自定义是否显示日志
+logger = logging.getLogger("pythink")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
+
 
 db = connect("mysql://root:123456@127.0.01:3306/demo")
 
@@ -26,7 +29,19 @@ class StudentThinkModel(ThinkModel):
         return data["name"].upper()
 
 
-# 增加
+# 增加单条记录
+data = {
+    "name": "Tom",
+}
+result = StudentThinkModel.insert(data)
+print(result)
+"""
+SQL: INSERT INTO student(create_time, name) VALUES (%s, %s) 
+SQL Params: ["2019-04-26 15:37:08", "TOM"]
+StudentThinkModel insert result: 1
+1
+"""
+# 增加多条记录
 data = [
     {
         "name": "Tom",
@@ -38,9 +53,13 @@ data = [
 
 result = StudentThinkModel.insert(data)
 print(result)
-# INSERT INTO student(age, create_time, name) VALUES (%s, %s, %s)
-# [23, '2019-04-20 20:18:40', 'TOM']
-# 1
+"""
+SQL: INSERT INTO student(create_time, name) VALUES (%s, %s), (%s, %s) 
+SQL Params: ["2019-04-26 15:37:08", "TOM", "2019-04-26 15:37:08", "JACK"]
+StudentThinkModel insert result: 2
+2
+"""
+
 
 # 删除
 result = StudentThinkModel.delete(13)
@@ -69,4 +88,3 @@ result = StudentThinkModel.select(
 print(result)
 # SELECT name, age FROM student WHERE id=1 LIMIT 1
 # <generator object <genexpr> at 0x10f77f140>
-
