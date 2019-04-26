@@ -1,5 +1,8 @@
 # pythink
 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pythink.svg)
+![PyPI](https://img.shields.io/pypi/v/pythink.svg)
+
 灵感来自于ThinkPHP
 
 根据现有业务 实现了简单的增删改查

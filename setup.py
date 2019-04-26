@@ -15,7 +15,7 @@ from os import path
 import requests
 import setuptools
 
-version = "0.0.2"
+version = "0.0.3"
 
 basedir = path.dirname(path.abspath(__file__))
 
