@@ -5,30 +5,31 @@
 
 from __future__ import unicode_literals, print_function
 
-import hashlib
-from datetime import datetime
-from pythink.logger import logger
-from pythink.think_table import ThinkTable
+from .logger import logger
+from .think_table import ThinkTable
+from .util import Util
 
 
 class ThinkModel(object):
     """
-    基类
+    ThinkModel 基类
     """
+    #############################
     # 必须设置的参数
+    #############################
+
     table_name = None
     database = None
 
+    #############################
     # 可选的参数
-    datetime_format = "%Y-%m-%d %H:%M:%S"
+    #############################
 
-    # 自动添加创建时间
+    # 自动添加创建时间 False or "%Y-%m-%d %H:%M:%S"
     create_time = False
-    create_time_format = datetime_format
 
-    # 自动添加更新时间
+    # 自动添加更新时间 False or "%Y-%m-%d %H:%M:%S"
     update_time = False
-    update_time_format = datetime_format
 
     # list 去重MD5 的联合字段列表
     md5_list = []
@@ -38,48 +39,36 @@ class ThinkModel(object):
         return ThinkTable(cls.database, cls.table_name)
 
     @classmethod
-    def set_insert_create_time(cls, data):
-        if cls.create_time:
-            return cls._date_time(cls.create_time_format)
-        else:
-            return None
-
-    @classmethod
-    def set_insert_md5(cls, data):
-        if cls.md5_list:
-            return cls._md5(data, cls.md5_list)
-        else:
-            return None
-
-    @classmethod
-    def set_update_update_time(cls, data):
-        if cls.update_time:
-            return cls._date_time(cls.update_time_format)
-        else:
-            return None
-
-    @classmethod
     def insert(cls, data, ignore=False, replace=False):
         """
-        :param data:
+        :param data: dict/list
         :param ignore: bool
         :param replace: bool
         :return:
         """
         table = cls.get_table()
 
-        data = cls._process_method(data, "set_insert_")
+        if isinstance(data, list):
+            lst = []
+            for d in data:
+                d = cls._process_method(d, "set_insert_")
+                lst.append(d)
+
+            data = lst
+
+        elif isinstance(data, dict):
+            data = cls._process_method(data, "set_insert_")
 
         result = table.insert(data, ignore, replace).execute()
 
-        logger.debug(" {} insert result: {}".format(
+        logger.debug("{} insert result: {}".format(
             cls.__name__, result)
         )
 
         return result
 
     @classmethod
-    def select(cls, fields, where, limit, as_list=False, as_dict=False):
+    def select(cls, fields, where="1=1", limit=1, as_list=False, as_dict=False):
         table = cls.get_table()
 
         rows = table.select(
@@ -109,7 +98,7 @@ class ThinkModel(object):
             "id={}".format(uid)
         ).execute()
 
-        logger.debug(" {} update result: {}".format(
+        logger.debug("{} update result: {}".format(
             cls.__name__, result)
         )
         return result
@@ -123,41 +112,11 @@ class ThinkModel(object):
             "id={}".format(uid)
         ).execute()
 
-        logger.debug(" {} delete result: {}".format(
+        logger.debug("{} delete result: {}".format(
             cls.__name__, result)
         )
 
         return result
-
-    @classmethod
-    def _date_time(cls, datetime_format=datetime_format):
-        return datetime.now().strftime(datetime_format)
-
-    @classmethod
-    def _md5(cls, data, md5_list):
-        md5 = hashlib.md5()
-
-        for md5_field in md5_list:
-            value = data[md5_field]
-
-            md5.update("{}".format(value).encode("utf-8"))
-
-        return md5.hexdigest()
-
-    @classmethod
-    def _get_methods(cls):
-        return filter(cls._is_public_method, dir(cls))
-
-    @classmethod
-    def _is_public_method(cls, method_name):
-        if all([
-            not method_name.startswith("_"),
-            not method_name.startswith("__"),
-            callable(getattr(cls, method_name))
-        ]):
-            return True
-        else:
-            return False
 
     @classmethod
     def _process_method(cls, data, process_method_key):
@@ -168,9 +127,13 @@ class ThinkModel(object):
         :return: dict
         """
 
-        for method_name in cls._get_methods():
+        for method_name in Util.get_public_names(cls):
             if method_name.startswith(process_method_key):
-                method = getattr(cls, method_name)
+                method = Util.get_method(cls, method_name)
+
+                if method is None:
+                    continue
+
                 field_name = method_name.split(process_method_key)[-1]
 
                 result = method(data)
@@ -178,3 +141,24 @@ class ThinkModel(object):
                     data[field_name] = result
 
         return data
+
+    @classmethod
+    def set_insert_create_time(cls, data):
+        if cls.create_time:
+            return Util.get_date_time_str(cls.create_time)
+        else:
+            return None
+
+    @classmethod
+    def set_update_update_time(cls, data):
+        if cls.update_time:
+            return Util.get_date_time_str(cls.update_time)
+        else:
+            return None
+
+    @classmethod
+    def set_insert_md5(cls, data):
+        if cls.md5_list:
+            return Util.get_md5(data, cls.md5_list)
+        else:
+            return None

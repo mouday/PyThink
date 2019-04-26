@@ -5,5 +5,5 @@
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pythink")
 logger.addHandler(logging.NullHandler())

@@ -5,6 +5,11 @@
 
 from pythink import ThinkModel
 from playhouse.db_url import connect
+import logging
+
+logger = logging.getLogger('pythink')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 db = connect("mysql://root:123456@127.0.01:3306/demo")
 
@@ -13,7 +18,7 @@ class StudentThinkModel(ThinkModel):
     table_name = "student"
     database = db
 
-    create_time = True  # 开启自动插入时间
+    create_time = "%Y-%m-%d %H:%M:%S"  # 开启自动插入时间
 
     @classmethod
     def set_insert_name(cls, data):
@@ -22,10 +27,14 @@ class StudentThinkModel(ThinkModel):
 
 
 # 增加
-data = {
-    "name": "Tom",
-    "age": 23
-}
+data = [
+    {
+        "name": "Tom",
+    },
+    {
+        "name": "Jack"
+    }
+]
 
 result = StudentThinkModel.insert(data)
 print(result)

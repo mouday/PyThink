@@ -5,6 +5,8 @@
 
 from __future__ import unicode_literals, print_function
 
+import json
+
 from .logger import logger
 from .exceptions import ThinkException
 import time
@@ -23,6 +25,15 @@ class ThinkTable(object):
     def __init__(self, database, table_name):
         self._database = database
         self._table_name = table_name
+        self._fields = None
+        self._params = None
+        self._sql = None
+        self._is_count = False
+
+    def _clear(self):
+        """
+        初始化所有值，避免多条语句中的参数冲突
+        """
         self._fields = None
         self._params = None
         self._sql = None
@@ -83,8 +94,7 @@ class ThinkTable(object):
 
         # 对列表中的key 进行校验
         for d in data:
-            diff = set(base_keys) - set(d.keys())
-            if diff:
+            if set(base_keys) != set(d.keys()):
                 raise ThinkException("list data keys different")
 
         keys = ", ".join(base_keys)
@@ -238,7 +248,7 @@ class ThinkTable(object):
         """
         sql = " ".join(self._sql)
 
-        logger.debug("\n[ThinkDatabase SQL] {}".format(sql))
+        logger.debug("SQL: {}".format(sql))
 
         # 安全校验
         if "UPDATE" in sql and "WHERE" not in sql:
@@ -258,17 +268,20 @@ class ThinkTable(object):
         cursor = self._execute_sql(sql, self._params)
         return cursor.rowcount
 
-    def _clear(self):
-        self._fields = None
-        self._params = None
-        self._sql = None
-
     def _execute_sql(self, sql, params=None):
         """
         执行SQL 可以重写此方法 返回cursor 对象 即可
         :param sql: str
         :return: cursor对象
         """
+        try:
+            params_str = json.dumps(params, ensure_ascii=False)
+        except Exception as e:
+            logger.debug(e)
+            params_str = params
+
+        logger.debug("SQL Params: {}".format(params_str))
+
         # peewee 执行SQL
         cursor = self._database.execute_sql(sql, params)
         self._clear()
@@ -296,7 +309,7 @@ class ThinkTable(object):
         result = cursor.fetchall()
 
         end = time.time()
-        logger.debug("\n[ThinkDatabase SQL] query time: {:.3f}s".format(end - start))
+        logger.debug("query time: {:.3f}s".format(end - start))
 
         if as_dict:
             rows = (Row(*ret)._asdict() for ret in result)
