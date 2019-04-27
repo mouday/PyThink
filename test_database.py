@@ -48,7 +48,7 @@ class ThinkTableTest(unittest.TestCase):
             "age": 30
         }
         row = self.student.update(data).where("id=12").execute()
-        self.assertEqual(row, 1)
+        self.assertEqual(row, 0)
 
     def test_insert_one(self):
         # 增加

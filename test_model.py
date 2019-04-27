@@ -62,7 +62,8 @@ StudentThinkModel insert result: 2
 
 
 # 删除
-result = StudentThinkModel.delete(13)
+result = StudentThinkModel.delete("id=13")
+
 print(result)
 # DELETE FROM student WHERE id=13
 # 1
@@ -73,7 +74,7 @@ data = {
     "name": "Tom",
     "age": 24
 }
-result = StudentThinkModel.update(1, data)
+result = StudentThinkModel.update(data, "id=1")
 print(result)
 # UPDATE student SET age=%s, name=%s WHERE id=1
 # [24, 'Tom']

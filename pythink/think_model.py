@@ -18,7 +18,10 @@ class ThinkModel(object):
     # 必须设置的参数
     #############################
 
+    # 表名
     table_name = None
+
+    # 数据库对象 peewee.Database
     database = None
 
     #############################
@@ -39,12 +42,38 @@ class ThinkModel(object):
         return ThinkTable(cls.database, cls.table_name)
 
     @classmethod
+    def select(cls, fields, where="1=1", limit=1, as_list=False, as_dict=False):
+        """
+        查询数据
+        :param fields: list 要选择的字段列表
+        :param where: str 条件（包括sql 中 where关键字到 limit关键字之间的内容）
+        :param limit: int 数量
+        :param as_list: bool 结果集转为列表，默认为generator
+        :param as_dict: bool 结果单元转为字段，默认为对象
+        :return:
+            generator/list
+                -object/dict
+        """
+        table = cls.get_table()
+
+        rows = table.select(
+            fields
+        ).where(
+            where
+        ).limit(
+            limit
+        ).query(as_list, as_dict)
+
+        return rows
+
+    @classmethod
     def insert(cls, data, ignore=False, replace=False):
         """
-        :param data: dict/list
-        :param ignore: bool
-        :param replace: bool
-        :return:
+        插入数据
+        :param data: dict/list 要插入的数据
+        :param ignore: bool 启用 'INSERT IGNORE INTO'
+        :param replace: bool 启用 'REPLACE INTO'
+        :return: int 插入成功条数
         """
         table = cls.get_table()
 
@@ -68,25 +97,12 @@ class ThinkModel(object):
         return result
 
     @classmethod
-    def select(cls, fields, where="1=1", limit=1, as_list=False, as_dict=False):
-        table = cls.get_table()
-
-        rows = table.select(
-            fields
-        ).where(
-            where
-        ).limit(
-            limit
-        ).query(as_list, as_dict)
-
-        return rows
-
-    @classmethod
-    def update(cls, uid, data):
+    def update(cls, data, where):
         """
-        :param uid:
-        :param data:
-        :return:
+        更新数据
+        :param data: dict 数据字典
+        :param where: str 更新条件
+        :return: int 更新成功的条数
         """
         table = cls.get_table()
 
@@ -95,7 +111,7 @@ class ThinkModel(object):
         result = table.update(
             data
         ).where(
-            "id={}".format(uid)
+            where
         ).execute()
 
         logger.debug("{} update result: {}".format(
@@ -104,12 +120,17 @@ class ThinkModel(object):
         return result
 
     @classmethod
-    def delete(cls, uid):
+    def delete(cls, where):
+        """
+        删除数据
+        :param where: str 删除条件
+        :return: int 删除条数
+        """
         table = cls.get_table()
 
         result = table.delete(
         ).where(
-            "id={}".format(uid)
+            where
         ).execute()
 
         logger.debug("{} delete result: {}".format(
@@ -144,6 +165,14 @@ class ThinkModel(object):
 
     @classmethod
     def set_insert_create_time(cls, data):
+        """
+        自定义实现的插入时间预处理函数
+            使用mysql 自动维护
+            `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+
+        :param data: dict
+        :return: create_time str
+        """
         if cls.create_time:
             return Util.get_date_time_str(cls.create_time)
         else:
@@ -151,6 +180,14 @@ class ThinkModel(object):
 
     @classmethod
     def set_update_update_time(cls, data):
+        """
+        自定义实现的更新时间处理函数
+            使用mysql 自动维护
+            `update_time` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+
+        :param data: dict
+        :return: update_time str
+        """
         if cls.update_time:
             return Util.get_date_time_str(cls.update_time)
         else:
@@ -158,6 +195,11 @@ class ThinkModel(object):
 
     @classmethod
     def set_insert_md5(cls, data):
+        """
+        自定义实现的插入MD5 计算函数
+        :param data: dict
+        :return: md5 str
+        """
         if cls.md5_list:
             return Util.get_md5(data, cls.md5_list)
         else:
