@@ -15,9 +15,7 @@ from os import path
 import requests
 import setuptools
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-version_file = os.path.join("pythink", "VERSION")
-version = open(os.path.join(base_dir, version_file)).read()
+version = "0.0.6"
 
 basedir = path.dirname(path.abspath(__file__))
 
