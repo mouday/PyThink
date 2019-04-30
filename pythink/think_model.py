@@ -5,9 +5,9 @@
 
 from __future__ import unicode_literals, print_function
 
-from .logger import logger
-from .think_table import ThinkTable
-from .util import Util
+from pythink.logger import logger
+from pythink.think_table import ThinkTable
+from pythink.util import Util
 
 
 class ThinkModel(object):
@@ -42,34 +42,29 @@ class ThinkModel(object):
         return ThinkTable(cls.database, cls.table_name)
 
     @classmethod
-    def select(cls, fields, where="1=1", limit=1, as_list=False, as_dict=False):
+    def select(cls, fields, where=None, limit=1):
         """
         查询数据
         :param fields: list 要选择的字段列表
         :param where: str 条件（包括sql 中 where关键字到 limit关键字之间的内容）
         :param limit: int 数量
-        :param as_list: bool 结果集转为列表，默认为generator
-        :param as_dict: bool 结果单元转为字段，默认为对象
         :return:
             generator/list
                 -object/dict
         """
         table = cls.get_table()
-
-        rows = table.select(
-            fields
-        ).where(
-            where
-        ).limit(
-            limit
-        ).query(as_list, as_dict)
+        if where:
+            rows = table.select(fields).where(where).limit(limit).query()
+        else:
+            rows = table.select(fields).limit(limit).query()
 
         return rows
 
     @classmethod
-    def insert(cls, data, ignore=False, replace=False):
+    def insert(cls, data, truncate=None, ignore=False, replace=False):
         """
         插入数据
+        :param truncate: int 分段插入，每次插入数量
         :param data: dict/list 要插入的数据
         :param ignore: bool 启用 'INSERT IGNORE INTO'
         :param replace: bool 启用 'REPLACE INTO'
@@ -88,7 +83,7 @@ class ThinkModel(object):
         elif isinstance(data, dict):
             data = cls._process_method(data, "set_insert_")
 
-        result = table.insert(data, ignore, replace).execute()
+        result = table.insert(data, truncate, ignore, replace).execute()
 
         logger.debug("{} insert result: {}".format(
             cls.__name__, result)
@@ -108,11 +103,7 @@ class ThinkModel(object):
 
         data = cls._process_method(data, "set_update_")
 
-        result = table.update(
-            data
-        ).where(
-            where
-        ).execute()
+        result = table.update(data).where(where).execute()
 
         logger.debug("{} update result: {}".format(
             cls.__name__, result)
@@ -128,16 +119,24 @@ class ThinkModel(object):
         """
         table = cls.get_table()
 
-        result = table.delete(
-        ).where(
-            where
-        ).execute()
+        result = table.delete().where(where).execute()
 
         logger.debug("{} delete result: {}".format(
             cls.__name__, result)
         )
 
         return result
+
+    @classmethod
+    def count(cls, where=None):
+        table = cls.get_table()
+
+        if where:
+            result = table.select_count().where(where).query_first()
+        else:
+            result = table.select_count().query_first()
+
+        return result.count
 
     @classmethod
     def _process_method(cls, data, process_method_key):

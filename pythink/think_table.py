@@ -5,12 +5,11 @@
 
 from __future__ import unicode_literals, print_function
 
-import json
-
-from .logger import logger
-from .exceptions import ThinkException
 import time
-from collections import namedtuple
+
+from pythink.exceptions import ThinkException
+from pythink.logger import logger
+from pythink.records import Records
 
 
 class ThinkTable(object):
@@ -20,34 +19,38 @@ class ThinkTable(object):
     # 1、update 必须有 where
     # 2、delete 必须有 where
 
-    replace_symbol = "%s"
-
     def __init__(self, database, table_name):
         self._database = database
         self._table_name = table_name
-        self._fields = None
         self._params = None
         self._sql = None
+        self._truncate = None
         self._is_count = False
+        self._is_insert = False
 
     def _clear(self):
         """
         初始化所有值，避免多条语句中的参数冲突
         """
-        self._fields = None
         self._params = None
         self._sql = None
+        self._truncate = None
         self._is_count = False
+        self._is_insert = False
 
-    def _insert(self, keys_str, values_str, ignore=False, replace=False):
+    def _insert(self, keys, ignore=False, replace=False):
         """
         插入数据
-        :param keys_str: str 关键字字符串
-        :param values_str: str 数值字符串
+        :param keys: list 关键字列表
         :param ignore: bool
         :param replace: bool
         :return: self
         """
+
+        keys_str = ", ".join(keys)
+        value_symbols = ", ".join(":{}".format(key) for key in keys)
+        values_str = "({})".format(value_symbols)
+
         # 启用ignore
         if ignore:
             insert_method = "INSERT IGNORE"
@@ -64,7 +67,10 @@ class ThinkTable(object):
             keys=keys_str,
             values=values_str
         )
+
         self._sql = [insert_sql]
+        self._is_insert = True
+
         return self
 
     def insert_one(self, data, ignore=False, replace=False):
@@ -75,41 +81,34 @@ class ThinkTable(object):
         :param replace: bool
         :return: self
         """
-        keys = ", ".join(data.keys())
-        value_symbols = ", ".join([self.replace_symbol] * len(data.keys()))
-        values = "({})".format(value_symbols)
-        self._params = data.values()
-        return self._insert(keys, values, ignore, replace)
+        self._params = data
+        return self._insert(data.keys(), ignore, replace)
 
-    def insert_many(self, data, ignore=False, replace=False):
+    def insert_many(self, data, truncate=None, ignore=False, replace=False):
         """
         插入多条数据
+        :param truncate: int
         :param data: list
         :param ignore: bool
         :param replace: bool
         :return: self
         """
+        self._params = data
+        self._truncate = truncate
+
         dct = data[0]
         base_keys = dct.keys()
-
         # 对列表中的key 进行校验
         for d in data:
             if set(base_keys) != set(d.keys()):
                 raise ThinkException("list data keys different")
 
-        keys = ", ".join(base_keys)
-        value_symbols = ", ".join([self.replace_symbol] * len(base_keys))
-        values = ", ".join("({})".format(value_symbols) for _ in range(len(data)))
+        return self._insert(base_keys, ignore, replace)
 
-        self._params = []
-        for dct in data:
-            self._params.extend(dct.values())
-
-        return self._insert(keys, values, ignore, replace)
-
-    def insert(self, data, ignore=False, replace=False):
+    def insert(self, data, truncate=None, ignore=False, replace=False):
         """
         向数据库插入一条 或 多条数据
+        :param truncate: int
         :param data: dict/list
         :param ignore: bool
         :param replace: bool
@@ -121,7 +120,7 @@ class ThinkTable(object):
 
         # 构造列表数据
         elif isinstance(data, list):
-            return self.insert_many(data, ignore, replace)
+            return self.insert_many(data, truncate, ignore, replace)
 
         else:
             raise ThinkException("data must list(dict) or dict")
@@ -131,13 +130,13 @@ class ThinkTable(object):
         更新数据库数据
         :return: self
         """
-        set_str = ", ".join("{}={}".format(key, self.replace_symbol) for key in data.keys())
+        set_str = ", ".join("{0}=:{0}".format(key) for key in data.keys())
 
         update_sql = "UPDATE {table_name} SET {set_str}".format(
             table_name=self._table_name, set_str=set_str
         )
         self._sql = [update_sql]
-        self._params = data.values()
+        self._params = data
         return self
 
     def delete(self):
@@ -165,11 +164,9 @@ class ThinkTable(object):
     def select_count(self, field_list=None, count_as="count"):
         # 处理语句 select count(*) as count,
         self._is_count = True
-        self._fields = [count_as]
         count_fields = ["COUNT(*) AS {}".format(count_as)]
 
         if field_list:
-            self._fields.extend(field_list)
             count_fields.extend(field_list)
 
         field_str = ", ".join(count_fields)
@@ -181,7 +178,6 @@ class ThinkTable(object):
         :param field_list: list 字段名称列表
         :return:self
         """
-        self._fields = field_list
         field_str = ", ".join(field_list)
         return self._select(field_str)
 
@@ -250,6 +246,9 @@ class ThinkTable(object):
 
         logger.debug("SQL: {}".format(sql))
 
+        if not sql:
+            raise ThinkException("SQL can not None")
+
         # 安全校验
         if "UPDATE" in sql and "WHERE" not in sql:
             raise ThinkException("ThinkDatabase if update must have where")
@@ -259,64 +258,67 @@ class ThinkTable(object):
 
         return sql
 
+    def _truncate_insert(self, sql):
+        """
+        分段插入
+        :param sql: str
+        :return:
+        """
+        start = 0
+        end = self._truncate
+        data = self._params[start: end]
+
+        rowcount = 0
+
+        while data:
+            cursor = self._database.execute_sql(sql, data)
+            rowcount += cursor.rowcount
+
+            start += self._truncate
+            end += self._truncate
+            data = self._params[start: end]
+
+        return rowcount
+
     def execute(self):
         """
         insert update delete 需要调用此方法才会被执行
         :return: int 影响行数
         """
         sql = self.sql_builder()
-        cursor = self._execute_sql(sql, self._params)
-        return cursor.rowcount
 
-    def _execute_sql(self, sql, params=None):
-        """
-        执行SQL 可以重写此方法 返回cursor 对象 即可
-        :param sql: str
-        :return: cursor对象
-        """
-        try:
-            params_str = json.dumps(params, ensure_ascii=False)
-        except Exception as e:
-            logger.debug(e)
-            params_str = params
+        if self._params:
+            if all([self._is_insert, self._truncate]):
+                rowcount = self._truncate_insert(sql)
 
-        logger.debug("SQL Params: {}".format(params_str))
+            else:
+                cursor = self._database.execute_sql(sql, self._params)
+                rowcount = cursor.rowcount
+        else:
+            cursor = self._database.execute_sql(sql)
+            rowcount = cursor.rowcount
 
-        # peewee 执行SQL
-        cursor = self._database.execute_sql(sql, params)
         self._clear()
+        return rowcount
 
-        return cursor
-
-    def query(self, as_list=False, as_dict=False):
+    def query(self):
         """
         select 需要调用此方法才会有查询结果
-        :param as_list: 结果转为列表 默认 False为迭代器
-        :param as_dict: 元素转为字典 默认 False为Row对象
         :return: generator(Row)/ generator(dict)
         """
         sql = self.sql_builder()
 
-        if not sql:
-            raise ThinkException("SQL can not None")
-
-        Row = namedtuple("Row", self._fields)
-
         start = time.time()
 
-        cursor = self._execute_sql(sql)
+        cursor = self._database.execute_sql(sql)
+        self._clear()
 
         result = cursor.fetchall()
 
         end = time.time()
         logger.debug("query time: {:.3f}s".format(end - start))
 
-        if as_dict:
-            rows = (Row(*ret)._asdict() for ret in result)
-        else:
-            rows = (Row(*ret) for ret in result)
-
-        return list(rows) if as_list else rows
+        return Records(cursor.keys(), result, cursor.rowcount)
 
     def query_first(self, as_dict=False):
         """
@@ -327,11 +329,7 @@ class ThinkTable(object):
         if not self._is_count:
             self.limit(1)
 
-        try:
-            row = self.query(as_list=True, as_dict=as_dict)[0]
-        except IndexError:
-            row = None
-        return row
+        return self.query().first(as_dict)
 
     def __getattr__(self, item):
         return self._append_sql(item.upper())._append_sql

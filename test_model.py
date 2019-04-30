@@ -3,89 +3,139 @@
 # @Date    : 2019-04-14
 # @Author  : Peng Shiyu
 
-from pythink import ThinkModel
-from pythink import connect
+from pythink import ThinkModel, ThinkDatabase
 
-import logging
-
-# 自定义是否显示日志
-logger = logging.getLogger("pythink")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
-
-
-db = connect("mysql://root:123456@127.0.01:3306/demo")
+db_url = "mysql://root:123456@127.0.01:3306/demo"
+db = ThinkDatabase(db_url, echo=True)
 
 
 class StudentThinkModel(ThinkModel):
     table_name = "student"
     database = db
 
-    create_time = "%Y-%m-%d %H:%M:%S"  # 开启自动插入时间
 
-    @classmethod
-    def set_insert_name(cls, data):
-        """把名字转为大写"""
-        return data["name"].upper()
-
-
-# 增加单条记录
-data = {
-    "name": "Tom",
-}
-result = StudentThinkModel.insert(data)
-print(result)
-"""
-SQL: INSERT INTO student(create_time, name) VALUES (%s, %s) 
-SQL Params: ["2019-04-26 15:37:08", "TOM"]
-StudentThinkModel insert result: 1
-1
-"""
-# 增加多条记录
-data = [
-    {
+#############################
+# 一、插入操作
+#############################
+# 1、增加单条记录
+def test_insert_one():
+    data = {
         "name": "Tom",
-    },
-    {
-        "name": "Jack"
     }
-]
+    result = StudentThinkModel.insert(data)
+    print(result)  #
 
-result = StudentThinkModel.insert(data)
-print(result)
-"""
-SQL: INSERT INTO student(create_time, name) VALUES (%s, %s), (%s, %s) 
-SQL Params: ["2019-04-26 15:37:08", "TOM", "2019-04-26 15:37:08", "JACK"]
-StudentThinkModel insert result: 2
-2
-"""
 
+# test_insert_one()
+
+
+# 2、增加多条记录
+def test_insert_many():
+    data = [
+        {
+            "name": "Tom",
+        },
+        {
+            "name": "Jack"
+        }
+    ]
+
+    result = StudentThinkModel.insert(data)
+    print(result)  # 2
+
+
+# test_insert_many()
+
+
+# 3、插入多条 分段插入
+def test_multi_insert():
+    data = [
+        {
+            "name": "Tom",
+            "age": 24,
+        },
+        {
+            "name": "Tom",
+            "age": 25,
+        },
+        {
+            "name": "Tom",
+            "age": 26,
+        },
+        {
+            "name": "Tom",
+            "age": 27,
+        },
+        {
+            "name": "Tom",
+            "age": 28,
+        },
+        {
+            "name": "Tom",
+            "age": 29,
+        }
+    ]
+
+    # 每次插入3 条数据
+    ret = StudentThinkModel.insert(data, truncate=3)
+    print(ret)  # 6
+
+
+# test_multi_insert()
+
+#############################
+# 二、查询操作
+#############################
+
+# 1、查询数量
+def test_select_count():
+    count = StudentThinkModel.count()
+    print(count)  # 24
+
+
+# test_select_count()
+
+
+# 2、查询记录
+def test_select_row():
+    rows = StudentThinkModel.select(["name", "age"], where="id>25", limit=5)
+    for row in rows:
+        print(row.name, row.age)
+
+
+# ('Tom', 25L)
+# ('Tom', 26L)
+# ('Tom', 27L)
+# ('Tom', 28L)
+# ('Tom', 29L)
+
+# test_select_row()
+
+
+#############################
+# 三、更新操作
+#############################
+
+# 1、条件更新
+def test_update():
+    data = {
+        "name": "tom",
+        "age": 30
+    }
+    ret = StudentThinkModel.update(data, "id=25")
+    print(ret)  # 1
+
+
+# test_update()
+
+
+#############################
+# 四、删除操作
+#############################
 
 # 删除
-result = StudentThinkModel.delete("id=13")
+def test_delete():
+    result = StudentThinkModel.delete("id=13")
+    print(result)  # 1
 
-print(result)
-# DELETE FROM student WHERE id=13
-# 1
-
-
-# 修改
-data = {
-    "name": "Tom",
-    "age": 24
-}
-result = StudentThinkModel.update(data, "id=1")
-print(result)
-# UPDATE student SET age=%s, name=%s WHERE id=1
-# [24, 'Tom']
-# 0
-
-# 查询
-result = StudentThinkModel.select(
-    fields=["name", "age"],
-    where="id=1",
-    limit=1
-)
-print(result)
-# SELECT name, age FROM student WHERE id=1 LIMIT 1
-# <generator object <genexpr> at 0x10f77f140>
+# test_delete()

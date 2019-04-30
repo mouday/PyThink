@@ -4,10 +4,15 @@
 ![PyPI](https://img.shields.io/pypi/v/pythink.svg)
 
 灵感来自于ThinkPHP
+部分代码实现参考了 records
 
-根据现有业务 实现了简单的增删改查
+根据现有业务 实现了简单的增删改查， 可以用作日常助手
 
-依赖于peewee 2.8.2
+依赖：
+```
+SQLAlchemy>=1.2.8
+```
+> ps：原来基于peewee实现的，不过问题较多，就直接用SQLAlchemy
 
 # 安装
 ```
@@ -28,55 +33,38 @@ CREATE TABLE `student` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8
 ```
 
-1、定义ThinkModel模型
+代码示例
+
+1、连接数据库，创建Model
 ```python
+# -*- coding: utf-8 -*-
 
-from pythink import ThinkModel
-from pythink import connect
+from pythink import ThinkModel, ThinkDatabase
 
-import logging
-
-# 自定义是否显示日志
-logger = logging.getLogger("pythink")
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
-
-
-db = connect("mysql://root:123456@127.0.01:3306/demo")
+db_url = "mysql://root:123456@127.0.01:3306/demo"
+db = ThinkDatabase(db_url)
 
 
 class StudentThinkModel(ThinkModel):
     table_name = "student"
     database = db
 
-    create_time = "%Y-%m-%d %H:%M:%S"  # 开启自动插入时间
-
-    @classmethod
-    def set_insert_name(cls, data):
-        """把名字转为大写"""
-        return data["name"].upper()
-
 ```
 
-2、增加
+2、插入操作
 ```python
 
-# 增加单条记录
+# 1、增加单条记录
+
 data = {
-    "name": "Tom",
+    "name": "Tom"
 }
 
-result = StudentThinkModel.insert(data)
-print(result)
-"""
-SQL: INSERT INTO student(create_time, name) VALUES (%s, %s)
-SQL Params: ["2019-04-26 15:37:08", "TOM"]
-StudentThinkModel insert result: 1
-1
-"""
+>>> StudentThinkModel.insert(data)
+>>> 1
 
 
-# 增加多条记录
+# 2、增加多条记录
 data = [
     {
         "name": "Tom",
@@ -86,50 +74,105 @@ data = [
     }
 ]
 
-result = StudentThinkModel.insert(data)
-print(result)
-"""
-SQL: INSERT INTO student(create_time, name) VALUES (%s, %s), (%s, %s)
-SQL Params: ["2019-04-26 15:37:08", "TOM", "2019-04-26 15:37:08", "JACK"]
-StudentThinkModel insert result: 2
-2
-"""
+>>> StudentThinkModel.insert(data)
+>>> 2
+
+
+
+# 3、插入多条 分段插入
+data = [
+    {
+        "name": "Tom",
+        "age": 24,
+    },
+    {
+        "name": "Tom",
+        "age": 25,
+    },
+    {
+        "name": "Tom",
+        "age": 26,
+    },
+    {
+        "name": "Tom",
+        "age": 27,
+    },
+    {
+        "name": "Tom",
+        "age": 28,
+    },
+    {
+        "name": "Tom",
+        "age": 29,
+    }
+]
+
+# 每次插入3 条数据
+>>> StudentThinkModel.insert(data, truncate=3)
+>>> 6
+```
+
+3、查询操作
+```python
+
+# 1、查询数量
+>>> StudentThinkModel.count()
+>>> 24
+
+
+
+# 2、查询记录
+rows = StudentThinkModel.select(["name", "age"], where="id>25", limit=5)
+for row in rows:
+    print(row.name, row.age)
+
+
+# ('Tom', 25L)
+# ('Tom', 26L)
+# ('Tom', 27L)
+# ('Tom', 28L)
+# ('Tom', 29L)
 
 ```
 
-3、删除
+4、更新操作
 ```python
-# 删除
-result = StudentThinkModel.delete(13)
-print(result)
-# DELETE FROM student WHERE id=13
-# 1
-```
 
-4、修改
-```python
-# 修改
+# 条件更新
 data = {
-    "name": "Tom",
-    "age": 24
+    "name": "tom",
+    "age": 30
 }
-result = StudentThinkModel.update(1, data)
-print(result)
-# UPDATE student SET age=%s, name=%s WHERE id=1
-# [24, 'Tom']
-# 0
+
+>>> StudentThinkModel.update(data, "id=25")
+>>> 1
+
 ```
 
-5、查询
+5、删除操作
 ```python
-# 查询
-result = StudentThinkModel.select(
-    fields=["name", "age"],
-    where="id=1",
-    limit=1
-)
-print(result)
-# SELECT name, age FROM student WHERE id=1 LIMIT 1
-# <generator object <genexpr> at 0x10f77f140>
+
+# 删除
+>>> StudentThinkModel.delete("id=13")
+>>> 1
 
 ```
+
+更多关于使用示例：
+ThinkDatabase
+https://github.com/mouday/PyThink/blob/master/pythink/think_database.py
+
+ThinkModel
+https://github.com/mouday/PyThink/blob/master/pythink/test_modle_extend.py
+
+
+# 更新记录
+* 部分版本可能存在不兼容，属于正常现象，后续版本会趋于稳定
+
+|时间 | 版本 | 主要更新|
+|-|-|-|
+|2019-04-14 | v0.0.1 | 基于peewee 实现基本的CURD |
+|2019-04-20 | v0.0.2 | 增强Model的功能,配置自动完成字段 |
+|2019-04-26 | v0.0.3 | 添加多行插入功能 |
+|2019-04-27 | v0.0.4 | 将update、delete修改得更通用 |
+|2019-04-30 | v0.0.5 | 基于SQLAlchemy重写逻辑，完成多行分次插入 |
