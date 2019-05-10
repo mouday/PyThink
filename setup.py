@@ -15,13 +15,17 @@ from os import path
 import requests
 import setuptools
 
-version = "0.0.6"
+version = "0.0.7"
 
-basedir = path.dirname(path.abspath(__file__))
+install_requires = [
+    "SQLAlchemy>=1.2.8"
+]
 
-readme_md = path.join(basedir, "README.md")
-readme_rst = path.join(basedir, "README.rst")
-requirements = path.join(basedir, "requirements.txt")
+BASE_DIR = path.dirname(path.abspath(__file__))
+
+readme_md = path.join(BASE_DIR, "README.md")
+readme_rst = path.join(BASE_DIR, "README.rst")
+requirements = path.join(BASE_DIR, "requirements.txt")
 
 
 # 将markdown格式转换为rst格式
@@ -44,10 +48,6 @@ if os.path.exists(readme_rst):
 else:
     long_description = 'Add a fallback short description here'
 
-if os.path.exists(requirements):
-    install_requires = io.open(requirements).read().split("\n")
-else:
-    install_requires = []
 
 setuptools.setup(
     name="pythink",

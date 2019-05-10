@@ -158,13 +158,28 @@ data = {
 
 ```
 
+当然，也可以不写表名，就像（省略部分代码）
+
+```python
+class BaseThinkModel(ThinkModel):
+    database = db
+
+
+class StudentThinkModel(BaseThinkModel):
+    """
+    学生类
+    会被自动转为 小写命名方式：student
+    """
+
+```
+
+
 更多关于使用示例：
 ThinkDatabase
-https://github.com/mouday/PyThink/blob/master/pythink/think_database.py
+https://github.com/mouday/PyThink/blob/master/test_database.py
 
 ThinkModel
-https://github.com/mouday/PyThink/blob/master/pythink/test_modle_extend.py
-
+https://github.com/mouday/PyThink/blob/master/test_modle_extend.py
 
 # 更新记录
 * 部分版本可能存在不兼容，属于正常现象，后续版本会趋于稳定
@@ -176,3 +191,5 @@ https://github.com/mouday/PyThink/blob/master/pythink/test_modle_extend.py
 |2019-04-26 | v0.0.3 | 添加多行插入功能 |
 |2019-04-27 | v0.0.4 | 将update、delete修改得更通用 |
 |2019-04-30 | v0.0.5 | 基于SQLAlchemy重写逻辑，完成多行分次插入 |
+|2019-04-30 | v0.0.6 | 修复安装报错的问题 |
+|2019-05-10 | v0.0.7 | 添加自动转为类名为表名 |

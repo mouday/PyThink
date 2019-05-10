@@ -39,7 +39,27 @@ class ThinkModel(object):
 
     @classmethod
     def get_table(cls):
-        return ThinkTable(cls.database, cls.table_name)
+        return ThinkTable(cls.database, cls.get_table_name())
+
+    @classmethod
+    def get_table_name(cls):
+        """
+        如果没有指定 table_name 属性，自动从类名中转换
+        tip:
+            类名尾部的继承标志会被去掉
+            eg: ThinkModel、Model
+
+        :return: str
+        """
+        if cls.table_name is None:
+            table_name = cls.__name__
+
+            table_name = table_name.replace("ThinkModel", "")
+            table_name = table_name.replace("Model", "")
+
+            cls.table_name = Util.get_lower_class_name(table_name)
+
+        return cls.table_name
 
     @classmethod
     def select(cls, fields, where=None, limit=1):
