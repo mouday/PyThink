@@ -2,6 +2,7 @@
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pythink.svg)
 ![PyPI](https://img.shields.io/pypi/v/pythink.svg)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pythink.svg?style=flat-square)
 
 灵感来自于ThinkPHP
 部分代码实现参考了 records
