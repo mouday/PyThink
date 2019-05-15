@@ -83,6 +83,32 @@ def test_multi_insert():
 
 # test_multi_insert()
 
+
+# 4、忽略重复
+def test_insert_ignore():
+    data = {
+        "name": "Tom",
+    }
+    result = StudentThinkModel.insert_ignore(data)
+    print(result)  # 0
+
+
+# test_insert_ignore()
+
+
+# 5、替换重复
+def test_insert_replace():
+    data = {
+        "name": "Tom",
+        "age": 100
+    }
+    result = StudentThinkModel.insert_replace(data)
+    print(result)  # 2
+
+
+# test_insert_replace()
+
+
 #############################
 # 二、查询操作
 #############################
@@ -111,6 +137,15 @@ def test_select_row():
 
 # test_select_row()
 
+# 3、快捷获取
+def test_select_by_id():
+    row = StudentThinkModel.select_by_id(4, ["name", "age"])
+    print(row.name, row.age)
+
+
+# ('Tom', 27L)
+
+# test_select_by_id()
 
 #############################
 # 三、更新操作
@@ -128,14 +163,34 @@ def test_update():
 
 # test_update()
 
+# 2、快捷更新
+def test_update_by_id():
+    data = {
+        "name": "tom",
+        "age": 30
+    }
+    ret = StudentThinkModel.update_by_id(2, data)
+    print(ret)  # 1
+
+
+# test_update_by_id()
+
 
 #############################
 # 四、删除操作
 #############################
 
-# 删除
+# 1、条件删除
 def test_delete():
     result = StudentThinkModel.delete("id=13")
     print(result)  # 1
 
+
 # test_delete()
+
+# 2、快速删除
+def test_delete_by_id():
+    result = StudentThinkModel.delete_by_id(1)
+    print(result)  # 1
+
+# test_delete_by_id()

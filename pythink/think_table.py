@@ -46,6 +46,9 @@ class ThinkTable(object):
         :param replace: bool
         :return: self
         """
+        # 不允许两个值同时设定
+        if all([ignore, replace]):
+            raise Exception("not allow set ignore and replace equal True at the same time")
 
         keys_str = ", ".join(keys)
         value_symbols = ", ".join(":{}".format(key) for key in keys)
@@ -53,10 +56,10 @@ class ThinkTable(object):
 
         # 启用ignore
         if ignore:
-            insert_method = "INSERT IGNORE"
+            insert_method = "INSERT IGNORE"  # 返回值 0
 
         elif replace:
-            insert_method = "REPLACE"
+            insert_method = "REPLACE"        # 返回值 2
 
         else:
             insert_method = "INSERT"
@@ -114,8 +117,12 @@ class ThinkTable(object):
         :param replace: bool
         :return: self
         """
+
         # 构造字典数据
         if isinstance(data, dict):
+            if truncate:
+                raise Exception("data is dict, not allow truncate")
+
             return self.insert_one(data, ignore, replace)
 
         # 构造列表数据

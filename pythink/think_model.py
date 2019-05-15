@@ -39,6 +39,10 @@ class ThinkModel(object):
 
     @classmethod
     def get_table(cls):
+        """
+        获取Table 对象，为了保证每次的参数不影响，每个查询都实例化一个Table对象
+        :return: ThinkTable
+        """
         return ThinkTable(cls.database, cls.get_table_name())
 
     @classmethod
@@ -223,3 +227,55 @@ class ThinkModel(object):
             return Util.get_md5(data, cls.md5_list)
         else:
             return None
+
+    @classmethod
+    def update_by_id(cls, uid, data):
+        """
+        通过id 更新数据
+        :param uid: int/ str
+        :param data: dict
+        :return: int 更新成功的条数
+        """
+        return cls.update(data, "id={}".format(uid))
+
+    @classmethod
+    def delete_by_id(cls, uid):
+        """
+        通过id 删除数据
+        :param uid: int/ str
+        :return: int 删除条数
+        """
+        return cls.delete("id={}".format(uid))
+
+    @classmethod
+    def select_by_id(cls, uid, fields, as_dict=False):
+        """
+        通过id 查询数据
+        :param uid: int/ str
+        :param fields: list 要选择的字段列表
+        :param as_dict: bool 结果转为字典，默认为对象
+        :return: object/dict
+        """
+        return cls.select(
+            fields, "id={}".format(uid), 1
+        ).first(as_dict)
+
+    @classmethod
+    def insert_ignore(cls, data, truncate=None):
+        """
+        插入数据 使用 'INSERT IGNORE INTO'
+        :param truncate: int 分段插入，每次插入数量
+        :param data: dict/list 要插入的数据
+        :return: int 插入成功条数
+        """
+        return cls.insert(data, truncate, ignore=True)
+
+    @classmethod
+    def insert_replace(cls, data, truncate=None):
+        """
+        插入数据 使用 'REPLACE INTO'
+        :param truncate: int 分段插入，每次插入数量
+        :param data: dict/list 要插入的数据
+        :return: int 插入成功条数
+        """
+        return cls.insert(data, truncate, replace=True)
