@@ -13,6 +13,7 @@
 ```
 SQLAlchemy>=1.2.8
 ```
+
 > ps：原来基于peewee实现的，不过问题较多，就直接用SQLAlchemy
 
 # 安装
@@ -26,7 +27,6 @@ pip install pythink
 ```sql
 CREATE TABLE `student` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `uid` int(11) DEFAULT NULL,
   `name` varchar(20) DEFAULT '',
   `age` int(11),
   `create_time` datetime DEFAULT NULL,
@@ -194,3 +194,4 @@ https://github.com/mouday/PyThink/blob/master/test_modle_extend.py
 |2019-04-30 | v0.0.5 | 基于SQLAlchemy重写逻辑，完成多行分次插入 |
 |2019-04-30 | v0.0.6 | 修复安装报错的问题 |
 |2019-05-10 | v0.0.7 | 添加自动转为类名为表名 |
+|2019-05-15 | v0.0.8 | 给Model添加一些快捷方式 |
