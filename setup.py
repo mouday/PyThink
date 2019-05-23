@@ -15,10 +15,11 @@ from os import path
 import requests
 import setuptools
 
-version = "0.0.8"
+version = "0.0.9"
 
 install_requires = [
-    "SQLAlchemy>=1.2.8"
+    "SQLAlchemy>=1.2.8",
+    "PyMySQL>=0.9.3"
 ]
 
 BASE_DIR = path.dirname(path.abspath(__file__))

@@ -66,7 +66,7 @@ class ThinkModel(object):
         return cls.table_name
 
     @classmethod
-    def select(cls, fields, where=None, limit=1):
+    def select(cls, fields, where=None, limit=None):
         """
         查询数据
         :param fields: list 要选择的字段列表
@@ -76,13 +76,21 @@ class ThinkModel(object):
             generator/list
                 -object/dict
         """
-        table = cls.get_table()
-        if where:
-            rows = table.select(fields).where(where).limit(limit).query()
-        else:
-            rows = table.select(fields).limit(limit).query()
 
-        return rows
+        table = cls.get_table()
+
+        # 兼容字符串格式的字段列表, py2 + py3
+        if not isinstance(fields, list):
+            fields = [field.strip() for field in fields.split(",")]
+
+        table.select(fields)
+
+        if where:
+            table.where(where)
+        if limit:
+            table.limit(limit)
+
+        return table.query()
 
     @classmethod
     def insert(cls, data, truncate=None, ignore=False, replace=False):
@@ -155,10 +163,12 @@ class ThinkModel(object):
     def count(cls, where=None):
         table = cls.get_table()
 
+        table.select_count()
+
         if where:
-            result = table.select_count().where(where).query_first()
-        else:
-            result = table.select_count().query_first()
+            table.where(where)
+
+        result = table.query_first()
 
         return result.count
 
@@ -257,7 +267,7 @@ class ThinkModel(object):
         :return: object/dict
         """
         return cls.select(
-            fields, "id={}".format(uid), 1
+            fields, where="id={}".format(uid), limit=1
         ).first(as_dict)
 
     @classmethod

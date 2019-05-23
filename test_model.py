@@ -115,7 +115,8 @@ def test_insert_replace():
 
 # 1、查询数量
 def test_select_count():
-    count = StudentThinkModel.count()
+    count = StudentThinkModel.count("name='Tom'")
+    # SELECT COUNT(*) AS count FROM student WHERE name='Tom'
     print(count)  # 24
 
 
@@ -125,6 +126,7 @@ def test_select_count():
 # 2、查询记录
 def test_select_row():
     rows = StudentThinkModel.select(["name", "age"], where="id>25", limit=5)
+    # SELECT name, age FROM student WHERE id>25 LIMIT 5
     for row in rows:
         print(row.name, row.age)
 
@@ -140,12 +142,24 @@ def test_select_row():
 # 3、快捷获取
 def test_select_by_id():
     row = StudentThinkModel.select_by_id(4, ["name", "age"])
+    # SELECT name, age FROM student WHERE id=4 LIMIT 1
     print(row.name, row.age)
 
 
 # ('Tom', 27L)
 
 # test_select_by_id()
+
+# 4、查询记录
+def test_select_all_row():
+    rows = StudentThinkModel.select("name, age")
+    # SELECT name, age FROM student
+    for row in rows:
+        print(row.name, row.age)
+
+
+# test_select_all_row()
+
 
 #############################
 # 三、更新操作

@@ -48,7 +48,7 @@ class ThinkTable(object):
         """
         # 不允许两个值同时设定
         if all([ignore, replace]):
-            raise Exception("not allow set ignore and replace equal True at the same time")
+            raise ThinkException("not allow set ignore and replace equal True at the same time")
 
         keys_str = ", ".join(keys)
         value_symbols = ", ".join(":{}".format(key) for key in keys)
@@ -99,7 +99,11 @@ class ThinkTable(object):
         self._params = data
         self._truncate = truncate
 
-        dct = data[0]
+        try:
+            dct = data[0]
+        except IndexError:
+            raise ThinkException("data not list!")
+
         base_keys = dct.keys()
         # 对列表中的key 进行校验
         for d in data:
@@ -121,7 +125,7 @@ class ThinkTable(object):
         # 构造字典数据
         if isinstance(data, dict):
             if truncate:
-                raise Exception("data is dict, not allow truncate")
+                raise ThinkException("data is dict, not allow truncate")
 
             return self.insert_one(data, ignore, replace)
 
